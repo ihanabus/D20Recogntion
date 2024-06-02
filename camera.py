@@ -15,7 +15,7 @@ print()
 
 img_path = './Images'
 
-# usually 0 or 1 depending on number of cameras on system
+# usually 0 or 1 depending if system already has camera
 camID = 1
 
 cam = cv.VideoCapture(camID)    

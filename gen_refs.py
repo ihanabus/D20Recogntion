@@ -31,7 +31,7 @@ window_canny = 'Canny'
 bar_lower = 'Lower'
 bar_upper = 'Upper'
 
-# usually 0 or 1 depending on number of cameras on system
+# usually 0 or 1 depending if system already has camera
 camID = 1
 
 canny_lt = canny_ut = 0

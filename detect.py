@@ -38,7 +38,7 @@ window_canny = 'Canny'
 bar_lower = 'Lower'
 bar_upper = 'Upper'
 
-# usually 0 or 1 depending on number of cameras on system
+# usually 0 or 1 depending if system already has camera
 camID = 1
 
 canny_lt = canny_ut = 0
@@ -60,9 +60,13 @@ def keypointsAndDescriptors(img):
 
 # brute force matching of descriptors with k-nearest neighbors approach
 def matched(des1, des2):
+    if des1 is None or des2 is None:
+        return None
     matches = bf.knnMatch(des1, des2, k = 2)
     good_matches = []
     # apply ratio test for stronger matches
+    if len(matches[0]) != 2:
+        return None
     for m,n in matches:
         if m.distance < dist_ratio * n.distance:
             good_matches.append((m,n))
@@ -128,6 +132,8 @@ def refmatch(img, ref_data):
 
         # ignore if number of matches is too low
         matches = matched(ref_data[i][0][1], des)
+        if matches is None:
+            continue
         if len(matches) <= 10:
             continue
         
@@ -266,9 +272,9 @@ while True:
             continue
         else:
             h,w,_ = crop_rgb.shape
-            # around a 30x30xc image
+            # around a 100x100xc image
             if h*w < 10000:
-                print("Not in frame")
+                print("Nothing major in frame")
                 print()
                 continue
             img_name_rgb = "crop_rgb.png"
