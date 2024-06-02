@@ -18,7 +18,8 @@ img_path = './Images'
 # usually 0 or 1 depending if system already has camera
 camID = 1
 
-cam = cv.VideoCapture(camID)    
+# extra parameter cv.CAP_DSHOW makes this process faster for Windows systems
+cam = cv.VideoCapture(camID, cv.CAP_DSHOW)    
 
 if not cam.isOpened():
     print("Unable to access camera")

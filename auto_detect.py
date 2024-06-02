@@ -1,5 +1,5 @@
 #####
-# opens camera and enables photo capture
+# opens camera with automated capture
 # base structure for other scripts
 # 
 # camera feed and image capture
@@ -26,6 +26,7 @@ import numpy as np
 import math
 import json
 import glob
+import time
 
 ### variables
 ref_path = './References'
@@ -48,7 +49,10 @@ cut = 'cut'
 
 ref_data = dict()
 
-### 
+prev_number = None
+interval = 3        # second interval of captures
+
+###
 sift = cv.SIFT.create(nOctaveLayers = 1)
 bf = cv.BFMatcher()
 dist_ratio = 0.8
@@ -215,6 +219,26 @@ def auto_crop(frame):
     roi_gs = frame_canny[y:y+h, x:x+w]
     return roi_rgb, roi_gs
 
+# tries to pick up on new numbers on a timer
+# includes transitions between numbers to None
+def crop_and_update(frame):
+    global prev_number
+    if frame is None:
+        return
+    result = None
+    crop_rgb, crop_gs = auto_crop(frame)
+    if crop_rgb is not None:
+        h,w,_ = crop_rgb.shape
+        # minimum ROI area (above 100x100xc if square)
+        if h*w > 10000:
+            img_name_rgb = "crop_rgb.png"
+            path = os.path.join(cur_path, img_name_rgb)
+            cv.imwrite(path, crop_rgb)
+            result = refmatch(crop_rgb, ref_data)
+    if result != prev_number:
+        prev_number = result
+        print(result)
+
 ### callback functions for trackbars
 def null_callback(x):
     pass
@@ -243,6 +267,8 @@ load_ref(ref_path)
 cv.setTrackbarPos(bar_lower, window_canny, canny_lt)
 cv.setTrackbarPos(bar_upper, window_canny, canny_ut)
 
+start_time = time.monotonic()
+
 while True:
 
     # ret: boolean for successful frame capture
@@ -257,6 +283,12 @@ while True:
     frame_canny = edge_detection(frame)
     cv.imshow(window_canny, frame_canny)
     
+    
+    now_time = time.monotonic()
+    # print((now_time - start_time) % interval)
+    if (now_time - start_time) % interval < 0.05:
+        crop_and_update(frame)    
+
     # user input
     k = cv.waitKey(1)
     if k % 256 == 27:
@@ -264,26 +296,6 @@ while True:
         print("Escape hit, closing...")
         print() 
         break
-    elif k % 256 == 32:
-        # SPACE pressed
-        print(f"Frame shape {frame.shape}")
-        crop_rgb, crop_gs = auto_crop(frame)
-        if crop_rgb is None:
-            continue
-        else:
-            h,w,_ = crop_rgb.shape
-            # around a 100x100xc image
-            if h*w < 10000:
-                print("Nothing major in frame")
-                print()
-                continue
-            img_name_rgb = "crop_rgb.png"
-            path = os.path.join(cur_path, img_name_rgb)
-            cv.imwrite(path, crop_rgb)
-            print(f"{img_name_rgb} {crop_rgb.shape} written!")
-            result = refmatch(cv.imread(path), ref_data)
-            print(result)
-            print()
 
 cam.release()
 
