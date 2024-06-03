@@ -50,7 +50,7 @@ cut = 'cut'
 ref_data = dict()
 
 prev_number = None
-interval = 3        # second interval of captures
+interval = 2        # second interval of captures
 
 ###
 sift = cv.SIFT.create(nOctaveLayers = 1)
@@ -251,7 +251,10 @@ cv.createTrackbar(bar_lower, window_canny, 0, 255, null_callback)
 cv.createTrackbar(bar_upper, window_canny, 0, 255, null_callback)
 
 ### program start
-cam = cv.VideoCapture(camID, cv.CAP_DSHOW)   
+# cv.CAP_DSHOW param helps camera boot up faster on Windows
+cam = cv.VideoCapture(camID, cv.CAP_DSHOW)
+# set fps is camera is slow
+# cam.set(cv.CAP_PROP_FPS, 30)
 if not cam.isOpened():
     print()
     print("Unable to access camera")
