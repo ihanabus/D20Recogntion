@@ -28,6 +28,16 @@ import json
 import glob
 import time
 
+### socket
+import sys
+from socket import socket, AF_INET, SOCK_DGRAM
+
+SERVER_IP = b'100.81.37.36'
+PORT_NUMBER = 5000
+SIZE = 1024
+
+sock = socket(AF_INET, SOCK_DGRAM)
+
 ### variables
 ref_path = './References'
 cam_path = './Captures'
@@ -40,7 +50,7 @@ bar_lower = 'Lower'
 bar_upper = 'Upper'
 
 # usually 0 or 1 depending if system already has camera
-camID = 1
+camID = 2
 
 canny_lt = canny_ut = 0
 start_lt = start_ut = 0
@@ -50,7 +60,7 @@ cut = 'cut'
 ref_data = dict()
 
 prev_number = None
-interval = 2        # second interval of captures
+interval = 1        # second interval of captures
 
 ###
 sift = cv.SIFT.create(nOctaveLayers = 1)
@@ -162,6 +172,7 @@ def refmatch(img, ref_data):
     inl = sorted(inl, reverse = True)
 
     if len(inl) > 0:
+        # print(inl[0][0])
         return inl[0][1]
     else:
         return None
@@ -231,30 +242,41 @@ def crop_and_update(frame):
         h,w,_ = crop_rgb.shape
         # minimum ROI area (above 100x100xc if square)
         if h*w > 10000:
+            result = refmatch(crop_rgb, ref_data)
+    if prev_number is None:
+        if result is not None:
             img_name_rgb = "crop_rgb.png"
             path = os.path.join(cur_path, img_name_rgb)
             cv.imwrite(path, crop_rgb)
-            result = refmatch(crop_rgb, ref_data)
-    if result != prev_number:
-        prev_number = result
-        print(result)
+            prev_number = result
+            obj = {}
+            obj['d20_result'] = result
+            deliverable = json.dumps(obj).encode('utf-8')
+            sock.sendto(deliverable, (SERVER_IP, PORT_NUMBER))
+            print(result)
+    else:
+        if result is None:
+            prev_number = None
+            
 
 ### callback functions for trackbars
 def null_callback(x):
     pass
 
 ### windows
-cv.namedWindow(window_cam)
-cv.namedWindow(window_canny)
+cv.namedWindow(window_cam, cv.WINDOW_NORMAL)
+cv.namedWindow(window_canny, cv.WINDOW_NORMAL)
+# resize
+cv.resizeWindow(window_cam, (500,500))
+cv.resizeWindow(window_canny, (500, 500))
 ### trackbars
 cv.createTrackbar(bar_lower, window_canny, 0, 255, null_callback)
 cv.createTrackbar(bar_upper, window_canny, 0, 255, null_callback)
 
 ### program start
-# cv.CAP_DSHOW param helps camera boot up faster on Windows
-cam = cv.VideoCapture(camID, cv.CAP_DSHOW)
-# set fps is camera is slow
-# cam.set(cv.CAP_PROP_FPS, 30)
+cam = cv.VideoCapture(camID)  
+cam.set(cv.CAP_PROP_FPS, 30)
+
 if not cam.isOpened():
     print()
     print("Unable to access camera")
